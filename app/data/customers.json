@@ -1,0 +1,18 @@
+[
+  {
+    "customer_id": "CUST-1001",
+    "name": "Northstar Retail",
+    "credit_limit": 50000,
+    "open_balance": 12000,
+    "payment_risk": "low",
+    "dispute_history": "rare"
+  },
+  {
+    "customer_id": "CUST-2002",
+    "name": "MetroBuild Supplies",
+    "credit_limit": 30000,
+    "open_balance": 28500,
+    "payment_risk": "high",
+    "dispute_history": "frequent"
+  }
+]

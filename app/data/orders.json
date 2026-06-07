@@ -1,0 +1,32 @@
+[
+  {
+    "order_id": "ORD-001",
+    "customer_id": "CUST-1001",
+    "customer_name": "Northstar Retail",
+    "po_number": "PO-7781",
+    "requested_delivery_date": "2026-06-15",
+    "lines": [
+      {
+        "sku": "SKU-LAPTOP-14",
+        "quantity": 3,
+        "unit_price": 950
+      }
+    ],
+    "raw_text": "Northstar Retail wants 3 SKU-LAPTOP-14 units at contract price. PO-7781."
+  },
+  {
+    "order_id": "ORD-002",
+    "customer_id": "CUST-2002",
+    "customer_name": "MetroBuild Supplies",
+    "po_number": "PO-8842",
+    "requested_delivery_date": "2026-06-18",
+    "lines": [
+      {
+        "sku": "SKU-MONITOR-27",
+        "quantity": 10,
+        "unit_price": 210
+      }
+    ],
+    "raw_text": "MetroBuild Supplies requests 10 monitors at 210 each. They need urgent delivery."
+  }
+]

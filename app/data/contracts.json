@@ -1,0 +1,12 @@
+[
+  {
+    "customer_id": "CUST-1001",
+    "sku": "SKU-LAPTOP-14",
+    "contract_price": 950
+  },
+  {
+    "customer_id": "CUST-2002",
+    "sku": "SKU-MONITOR-27",
+    "contract_price": 220
+  }
+]

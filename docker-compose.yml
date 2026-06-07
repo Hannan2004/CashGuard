@@ -1,0 +1,11 @@
+services:
+  cash_guard:
+    build: .
+    container_name: cashguard
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+    restart: unless-stopped
