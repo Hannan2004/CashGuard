@@ -1,0 +1,27 @@
+CashGuard Finance Policy Reference
+
+1. Credit Policy
+- Auto-approve orders where projected credit utilisation is below 75%.
+- Route to human review if projected credit utilisation is between 75% and 95%.
+- Block the order if projected credit utilisation exceeds 95%, or if the
+  customer's payment_risk is "high", regardless of utilisation.
+
+2. Pricing Policy
+- Any deviation between the submitted unit price and the contracted unit
+  price must be flagged for human review, regardless of the size of the
+  deviation (even $1 off contract is flagged).
+
+3. Inventory Policy
+- If the requested quantity for any line exceeds the available quantity in
+  stock, flag the order for human review (fulfillment decision required).
+
+4. Dispute Policy
+- If a pricing dispute is valid and the financial impact is under $500,
+  resolve with a credit memo.
+- If a pricing dispute's financial impact is $500 or more, escalate to the
+  sales team rather than resolving automatically.
+
+5. Collections Policy
+- Invoices that are 15+ days overdue require an urgent follow-up.
+- Invoices that are 90+ days overdue should be considered for write-off
+  review.

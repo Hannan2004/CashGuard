@@ -2,7 +2,7 @@ from app.state import AgentFinding, CashGuardState
 from app.utils import load_json
 
 def inventory_agent(state: CashGuardState) -> CashGuardState:
-    inventory = load_json("data/inventory.json")
+    inventory = load_json("inventory.json")
     shortages = []
 
     for line in state.order.lines:

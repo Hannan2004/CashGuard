@@ -1,10 +1,16 @@
+import os
 from fastapi import FastAPI, HTTPException
 
+from app.agents.intake_agent import intake_agent
+from app.gmail_helper import get_latest_unread_email
 from app.graph import build_graph
 from app.state import CashGuardState, OrderInput
 from app.utils import find_one, load_json
 
 app = FastAPI(title="CashGuard Agentic Order-to-Cash API")
+
+GMAIL_LABEL = os.environ.get("GMAIL_LABEL", "CashGuard")
+CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.7"))
 
 cashguard_graph = build_graph()
 
@@ -24,9 +30,53 @@ def run_case_by_order_id(order_id: str):
     order = find_one(orders, "order_id", order_id)
 
     if order is None:
-        raise HTTPException(status_code=404, detail="Order not found")
+        raise HTTPException(status_code=404, detail="Order '{order_id}' not found")
     
     initial_state = CashGuardState(order=OrderInput(**order))
     final_state = cashguard_graph.invoke(initial_state)
 
+    return final_state
+
+@app.post("/intake/email")
+async def intake_from_email():
+    email_body = get_latest_unread_email(GMAIL_LABEL)
+
+    if email_body is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No unread emails found under Gmail label '{GMAIL_LABEL}'",
+        )
+    
+    order = OrderInput(
+        order_id="EMAIL-PENDING",
+        customer_id="UNKNOWN",
+        customer_name="UNKNOWN",
+        lines=[],
+        raw_text=email_body
+    )
+
+    initial_state=CashGuardState(order=order)
+    post_intake_state=intake_agent(initial_state)
+
+    intake_finding = next(
+        (f for f in post_intake_state.findings if f.agent == "intake_agent"),
+        None,
+    )
+
+    if intake_finding is None or intake_finding.confidence < CONFIDENCE_THRESHOLD:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": (
+                    f"Gemini extraction confidence"
+                    f"({intake_finding.confidence if intake_finding else 0.0:.2f}) "
+                    f"is below threshold ({CONFIDENCE_THRESHOLD}). "
+                    "Manual review required."
+                ),
+                "raw_text": email_body,
+                "extraction": intake_finding.data if intake_finding else {},
+            },
+        )
+    
+    final_state = cashguard_graph.invoke(post_intake_state)
     return final_state

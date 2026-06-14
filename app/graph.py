@@ -1,6 +1,7 @@
 from langgraph.graph import END, StateGraph
 
 from app.agents.audit_agent import audit_agent
+from app.agents.intake_agent import intake_agent
 from app.agents.inventory_agent import inventory_agent
 from app.agents.invoice_agent import invoice_agent
 from app.agents.pricing_agent import pricing_agent
@@ -28,15 +29,17 @@ def route_after_checks(state: CashGuardState) -> str:
 
 def build_graph():
     graph = StateGraph(CashGuardState)
-
+    
+    graph.add_node("intake", intake_agent)
     graph.add_node("risk", risk_agent)
     graph.add_node("pricing", pricing_agent)
     graph.add_node("inventory", inventory_agent)
     graph.add_node("invoice", invoice_agent)
     graph.add_node("audit", audit_agent)
 
-    graph.set_entry_point("risk")
-
+    graph.set_entry_point("intake")
+    
+    graph.add_edge("intake", "risk")
     graph.add_edge("risk", "pricing")
     graph.add_edge("pricing", "inventory")
 
