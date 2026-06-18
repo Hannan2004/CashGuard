@@ -8,3 +8,4 @@ uvicorn[standard]
 langchain-google-community[gmail]
 google-auth-oauthlib
 google-auth-httplib2
+langgraph-checkpoint-sqlite 

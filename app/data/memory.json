@@ -1,0 +1,12 @@
+[
+  {
+    "customer_id": "CUST-1001",
+    "pattern": "Historically pays invoices on time. Very few disputes. Low operational risk.",
+    "risk_trend": "stable"
+  },
+  {
+    "customer_id": "CUST-2002",
+    "pattern": "Frequently close to credit limit. Multiple late payments. Prior pricing disputes.",
+    "risk_trend": "increasing"
+  }
+]

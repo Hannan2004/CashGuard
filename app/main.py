@@ -4,8 +4,9 @@ from fastapi import FastAPI, HTTPException
 from app.agents.intake_agent import intake_agent
 from app.gmail_helper import get_latest_unread_email
 from app.graph import build_graph
-from app.state import CashGuardState, OrderInput
+from app.state import CashGuardState, OrderInput, ReviewRequest
 from app.utils import find_one, load_json
+from langgraph.types import Command
 
 app = FastAPI(title="CashGuard Agentic Order-to-Cash API")
 
@@ -21,7 +22,14 @@ def health():
 @app.post("/cases/run")
 def run_case(order: OrderInput):
     initial_state = CashGuardState(order=order)
-    final_state = cashguard_graph.invoke(initial_state)
+    final_state = cashguard_graph.invoke(
+        initial_state,
+        config={
+            "configurable": {
+                "thread_id": order.order_id
+            }
+        }
+    )
     return final_state
 
 @app.post("/cases/run/{order_id}")
@@ -30,10 +38,17 @@ def run_case_by_order_id(order_id: str):
     order = find_one(orders, "order_id", order_id)
 
     if order is None:
-        raise HTTPException(status_code=404, detail="Order '{order_id}' not found")
+        raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
     
     initial_state = CashGuardState(order=OrderInput(**order))
-    final_state = cashguard_graph.invoke(initial_state)
+    final_state = cashguard_graph.invoke(
+        initial_state,
+        config={
+            "configurable": {
+                "thread_id": order["order_id"]
+            }
+        }
+    )
 
     return final_state
 
@@ -78,5 +93,55 @@ async def intake_from_email():
             },
         )
     
-    final_state = cashguard_graph.invoke(post_intake_state)
+    final_state = cashguard_graph.invoke(
+        post_intake_state,
+        config={
+            "configurable": {
+                "thread_id": order.order_id
+            }
+        }
+    )
     return final_state
+
+@app.post("/cases/{order_id}/review")
+def review_case(order_id: str, request: ReviewRequest):
+    try:
+        result = cashguard_graph.invoke(
+        Command(
+            resume={
+                "approved": request.approved,
+                "approved_by": request.approved_by,
+                "comments": request.comments,
+            }
+        ),
+        config={
+            "configurable": {
+                "thread_id": order_id
+            }
+        }
+        )
+
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    
+@app.get("/cases/{order_id}/state")
+def get_case_state(order_id: str):
+    state = cashguard_graph.get_state(
+        config={
+            "configurable": {
+                "thread_id": order_id
+            }
+        }
+    )
+
+    if state is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Workflow not found"
+        )
+
+    return state.values

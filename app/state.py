@@ -39,17 +39,19 @@ class HumanDecision(BaseModel):
 
 class CashGuardState(BaseModel):
     order: OrderInput
-    
     findings: list[AgentFinding] = Field(default_factory=list)
     risk_score: float | None = None
     risk_level: Literal["low", "medium", "high"] | None = None
-
+    recommendation: dict[str, Any] | None = None
     pricing_status: DecisionStatus = "pending"
     inventory_status: DecisionStatus = "pending"
     credit_status: DecisionStatus = "pending"
-
     human_decision: HumanDecision = Field(default_factory=HumanDecision)
-
     next_action: str | None = None
     invoice_id: str | None = None
     audit_log: list[str] = Field(default_factory=list)
+
+class ReviewRequest(BaseModel):
+    approved: bool
+    approved_by: str
+    comments: str | None = None 
