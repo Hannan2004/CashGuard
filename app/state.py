@@ -52,6 +52,5 @@ class CashGuardState(BaseModel):
     audit_log: list[str] = Field(default_factory=list)
 
 class ReviewRequest(BaseModel):
-    approved: bool
     approved_by: str
     comments: str | None = None 

@@ -6,14 +6,50 @@ from app.gmail_helper import get_latest_unread_email
 from app.graph import build_graph
 from app.state import CashGuardState, OrderInput, ReviewRequest
 from app.utils import find_one, load_json
+from app.case_store import initialize_case_store, upsert_case, list_cases
 from langgraph.types import Command
 
 app = FastAPI(title="CashGuard Agentic Order-to-Cash API")
+
+@app.on_event("startup")
+def startup():
+    initialize_case_store()
 
 GMAIL_LABEL = os.environ.get("GMAIL_LABEL", "CashGuard")
 CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.7"))
 
 cashguard_graph = build_graph()
+
+def validate_pending_review(order_id: str):
+    state = cashguard_graph.get_state(
+        config={
+            "configurable": {
+                "thread_id": order_id
+            }
+        }
+    )
+
+    if state is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Case not found"
+        )
+    
+    workflow = state.values 
+
+    if not workflow["human_decision"]["required"]:
+        raise HTTPException(
+            status_code=404,
+            detail="Human review not required"
+        )
+    
+    if not workflow["human_decision"]["status"] != "pending":
+        raise HTTPException(
+            status_code=404,
+            detail="Case already reviewed"
+        )
+    
+    return state
 
 @app.get("/health")
 def health():
@@ -22,6 +58,10 @@ def health():
 @app.post("/cases/run")
 def run_case(order: OrderInput):
     initial_state = CashGuardState(order=order)
+    upsert_case(
+        order.order_id,
+        "running"
+    )
     final_state = cashguard_graph.invoke(
         initial_state,
         config={
@@ -41,6 +81,10 @@ def run_case_by_order_id(order_id: str):
         raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
     
     initial_state = CashGuardState(order=OrderInput(**order))
+    upsert_case(
+        order["order_id"],
+        "running"
+    )
     final_state = cashguard_graph.invoke(
         initial_state,
         config={
@@ -61,7 +105,7 @@ async def intake_from_email():
             status_code=404,
             detail=f"No unread emails found under Gmail label '{GMAIL_LABEL}'",
         )
-    
+   
     order = OrderInput(
         order_id="EMAIL-PENDING",
         customer_id="UNKNOWN",
@@ -145,3 +189,65 @@ def get_case_state(order_id: str):
         )
 
     return state.values
+
+@app.get("/cases")
+def get_cases():
+    return list_cases()
+
+@app.post("/cases/{order_id}/approve")
+def approve_case(
+    order_id: str,
+    request: ReviewRequest
+): 
+    validate_pending_review(order_id)
+
+    result = cashguard_graph.invoke(
+        Command(
+            resume={
+                "approved": True,
+                "approved_by": request.approved_by,
+                "comments": request.comments
+            }
+        ),
+        config={
+            "configurable": {
+                "thread_id": order_id
+            }
+        }
+    )
+
+    upsert_case(
+        order_id,
+        "approved"
+    )
+
+    return result
+
+@app.post("/cases/{order_id}/reject")
+def reject_case(
+    order_id: str,
+    request: ReviewRequest
+):
+    validate_pending_review(order_id)
+
+    result = cashguard_graph.invoke(
+        Command(
+            resume={
+                "approved": False,
+                "approved_by": request.approved_by,
+                "comments": request.comments
+            }
+        ),
+        config={
+            "configurable": {
+                "thread_id": order_id
+            }
+        }
+    )
+
+    upsert_case(
+        order_id,
+        "rejected"
+    )
+
+    return result
