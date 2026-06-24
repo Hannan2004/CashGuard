@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 
 from app.agents.intake_agent import intake_agent
 from app.agents.collections_agent import run_collections
+from app.agents.dispute_agent import run_disputes
 from app.gmail_helper import get_latest_unread_email
 from app.graph import build_graph
 from app.state import CashGuardState, OrderInput, ReviewRequest
@@ -270,3 +271,93 @@ def collections_run_one(invoice_id: str):
             detail=f"Invoice '{invoice_id}' not found.",
         )
     return results[0]
+
+
+# ---------------------------------------------------------------------------
+# Dispute endpoints
+# ---------------------------------------------------------------------------
+
+@app.post("/disputes/run")
+def disputes_run_all():
+    """
+    Analyse all open disputes.
+
+    For each dispute, this will:
+      1. Gather invoice / order / contract evidence from JSON data
+      2. Fetch the contract PDF from Google Drive
+      3. Ask Gemini for a resolution recommendation
+    """
+    results = run_disputes()
+    return {"analysed": len(results), "results": results}
+
+
+@app.post("/disputes/run/{dispute_id}")
+def disputes_run_one(dispute_id: str):
+    """Analyse a specific dispute by ID."""
+    results = run_disputes(dispute_id=dispute_id)
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Dispute '{dispute_id}' not found.",
+        )
+    return results[0]
+
+
+@app.post("/disputes/{dispute_id}/resolve")
+def disputes_resolve(dispute_id: str, resolution: dict):
+    """
+    Submit a human resolution decision for a dispute.
+
+    Expected request body:
+    {
+        "resolved_by": "jane.doe@company.com",
+        "action_taken": "credit_memo",          // or corrected_invoice / escalate_to_sales / proceed_with_collection
+        "notes": "Customer claim verified. Credit memo issued for $440."
+    }
+
+    This endpoint patches the in-memory dispute record with the resolution
+    and returns the updated state. In production you would persist this to
+    a database; here we echo back the resolved dispute for the demo.
+    """
+    from app.utils import find_one, load_json
+
+    disputes = load_json("disputes.json")
+    dispute  = find_one(disputes, "dispute_id", dispute_id)
+
+    if dispute is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Dispute '{dispute_id}' not found.",
+        )
+
+    resolved_by  = resolution.get("resolved_by")
+    action_taken = resolution.get("action_taken")
+    notes        = resolution.get("notes", "")
+
+    if not resolved_by or not action_taken:
+        raise HTTPException(
+            status_code=422,
+            detail="Both 'resolved_by' and 'action_taken' are required.",
+        )
+
+    valid_actions = {
+        "credit_memo",
+        "corrected_invoice",
+        "escalate_to_sales",
+        "proceed_with_collection",
+    }
+    if action_taken not in valid_actions:
+        raise HTTPException(
+            status_code=422,
+            detail=f"'action_taken' must be one of: {sorted(valid_actions)}",
+        )
+
+    return {
+        "dispute_id":    dispute_id,
+        "previous_status": dispute.get("status"),
+        "new_status":    "resolved",
+        "action_taken":  action_taken,
+        "resolved_by":   resolved_by,
+        "notes":         notes,
+        "message":       f"Dispute {dispute_id} resolved with action '{action_taken}'.",
+    }
