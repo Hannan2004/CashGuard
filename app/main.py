@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI, HTTPException
 
 from app.agents.intake_agent import intake_agent
+from app.agents.collections_agent import run_collections
 from app.gmail_helper import get_latest_unread_email
 from app.graph import build_graph
 from app.state import CashGuardState, OrderInput, ReviewRequest
@@ -251,3 +252,21 @@ def reject_case(
     )
 
     return result
+
+
+@app.post("/collections/run")
+def collections_run_all():
+    """Analyse all overdue invoices and return collections recommendations."""
+    results = run_collections()
+    return {"analysed": len(results), "results": results}
+
+@app.post("/collections/run/{invoice_id}")
+def collections_run_one(invoice_id: str):
+    """Analyse a specific invoice by ID."""
+    results = run_collections(invoice_id=invoice_id)
+    if not results:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Invoice '{invoice_id}' not found.",
+        )
+    return results[0]

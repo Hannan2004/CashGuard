@@ -1,0 +1,11 @@
+[
+  {
+    "payment_id": "PAY-001",
+    "invoice_id": "INV-001",
+    "customer_id": "CUST-1001",
+    "amount": 2850.00,
+    "payment_date": "2026-05-28",
+    "method": "bank_transfer",
+    "reference": "TXN-NR-20260528"
+  }
+]

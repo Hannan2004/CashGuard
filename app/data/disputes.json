@@ -1,0 +1,16 @@
+[
+  {
+    "dispute_id": "DISP-001",
+    "invoice_id": "INV-003",
+    "order_id": "ORD-002",
+    "customer_id": "CUST-2002",
+    "customer_name": "MetroBuild Supplies",
+    "dispute_reason": "pricing_mismatch",
+    "description": "Customer claims they were quoted $210 per unit but invoice reflects $220. Requesting credit memo or corrected invoice.",
+    "amount_in_dispute": 440.00,
+    "raised_date": "2026-06-20",
+    "status": "open",
+    "assigned_to": null,
+    "resolution": null
+  }
+]

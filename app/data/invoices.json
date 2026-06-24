@@ -1,0 +1,38 @@
+[
+  {
+    "invoice_id": "INV-001",
+    "order_id": "ORD-001",
+    "customer_id": "CUST-1001",
+    "customer_name": "Northstar Retail",
+    "amount_due": 2850.00,
+    "amount_paid": 2850.00,
+    "issue_date": "2026-05-01",
+    "due_date": "2026-05-31",
+    "status": "paid",
+    "sku_summary": "SKU-LAPTOP-14 x3"
+  },
+  {
+    "invoice_id": "INV-002",
+    "order_id": "ORD-002",
+    "customer_id": "CUST-2002",
+    "customer_name": "MetroBuild Supplies",
+    "amount_due": 2200.00,
+    "amount_paid": 0.00,
+    "issue_date": "2026-05-10",
+    "due_date": "2026-06-09",
+    "status": "overdue",
+    "sku_summary": "SKU-MONITOR-27 x10"
+  },
+  {
+    "invoice_id": "INV-003",
+    "order_id": "ORD-002",
+    "customer_id": "CUST-2002",
+    "customer_name": "MetroBuild Supplies",
+    "amount_due": 440.00,
+    "amount_paid": 0.00,
+    "issue_date": "2026-05-20",
+    "due_date": "2026-06-19",
+    "status": "disputed",
+    "sku_summary": "SKU-MONITOR-27 x2 (partial reorder)"
+  }
+]
