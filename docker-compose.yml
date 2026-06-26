@@ -8,4 +8,10 @@ services:
       - .env
     environment:
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      # Set this to the public URL where this container is reachable.
+      # Used in Slack notification curl commands so reviewers get the right URL.
+      # - Local dev:   http://localhost:8000  (default, no need to set)
+      # - Docker host: http://<your-host-ip>:8000
+      # - UiPath:      https://<your-uipath-deployment-url>
+      CASHGUARD_BASE_URL: ${CASHGUARD_BASE_URL:-http://localhost:8000}
     restart: unless-stopped
