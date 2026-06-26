@@ -361,3 +361,74 @@ def disputes_resolve(dispute_id: str, resolution: dict):
         "notes":         notes,
         "message":       f"Dispute {dispute_id} resolved with action '{action_taken}'.",
     }
+
+# ---------------------------------------------------------------------------
+# Audit endpoint
+# ---------------------------------------------------------------------------
+
+@app.get("/audit")
+def get_audit(case_id: str | None = None):
+    """
+    Return structured audit entries across all processed cases.
+
+    Query params:
+      - case_id (optional): filter to a single order, e.g. ?case_id=ORD-002
+
+    Each entry in the response follows the schema:
+    {
+        "timestamp":      "2024-06-21T10:30:00+00:00",
+        "case_id":        "ORD-002",
+        "agent":          "risk_agent",
+        "action":         "credit_check",
+        "decision":       "needs_human_review",
+        "reason":         "Credit utilisation at 95%. Payment risk: high.",
+        "confidence":     0.9,
+        "human_approver": null
+    }
+    """
+    cases = list_cases()  # [{"order_id": ..., "status": ...}, ...]
+
+    all_entries = []
+
+    for case in cases:
+        order_id = case["order_id"]
+
+        # Skip if caller wants a specific case and this isn't it.
+        if case_id and order_id != case_id:
+            continue
+
+        try:
+            graph_state = cashguard_graph.get_state(
+                config={"configurable": {"thread_id": order_id}}
+            )
+        except Exception:
+            continue
+
+        if graph_state is None:
+            continue
+
+        raw_log = graph_state.values.get("audit_log", [])
+
+        for entry in raw_log:
+            # Entries are AuditEntry Pydantic objects when coming from a live
+            # graph state, or plain dicts when deserialized from the SQLite
+            # checkpointer — handle both.
+            if isinstance(entry, dict):
+                all_entries.append(entry)
+            else:
+                all_entries.append(entry.model_dump())
+
+    if case_id and not all_entries:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No audit entries found for case '{case_id}'.",
+        )
+
+    # Most recent first.
+    all_entries.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
+
+    return {
+        "total": len(all_entries),
+        "filter": {"case_id": case_id},
+        "entries": all_entries,
+    }
